@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Ultimate CDN Chess</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+</head>
+
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center p-4">
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+function ChessApp() {
+
+    const [game, setGame] = useState(new Chess());
+    const [selectedSquare, setSelectedSquare] = useState(null);
+    const [optionSquares, setOptionSquares] = useState([]);
+
+    // 1️⃣ Last Move Highlight
+    const [lastMove, setLastMove] = useState(null);
+
+    // 2️⃣ Move History
+    const [history, setHistory] = useState([]);
+
+    // 4️⃣ Flip Board
+    const [flipped, setFlipped] = useState(false);
+
+    // 6️⃣ Chess Clock (5 minutes each)
+    const [whiteTime, setWhiteTime] = useState(300);
+    const [blackTime, setBlackTime] = useState(300);
+
+    // 8️⃣ Dark / Light Mode
+    const [darkMode, setDarkMode] = useState(true);
+
+    const pieceSymbols = {
+        'p':'♟','r':'♜','n':'♞','b':'♝','q':'♛','k':'♚',
+        'P':'♙','R':'♖','N':'♘','B':'♗','Q':'♕','K':'♔'
+    };
+
+    const board = flipped ? [...game.board()].reverse() : game.board();
+
+    function getSquareLabel(i,j){
+        const row = flipped ? i : i;
+        return String.fromCharCode(97 + j) + (8 - i);
+    }
+
+    // 6️⃣ Timer Logic
+    useEffect(()=>{
+        const timer = setInterval(()=>{
+            if(!game.game_over()){
+                if(game.turn()==='w') setWhiteTime(t=>t>0?t-1:0);
+                else setBlackTime(t=>t>0?t-1:0);
+            }
+        },1000);
+        return ()=>clearInterval(timer);
+    },[game]);
+
+    function handleSquareClick(square){
+
+        if(selectedSquare){
+            const move = game.move({
+                from:selectedSquare,
+                to:square,
+                promotion:'q'
+            });
+
+            if(move){
+
+                // 1️⃣ Save Last Move
+                setLastMove({from:move.from,to:move.to});
+
+                // 2️⃣ Update History
+                setHistory(game.history());
+
+                // 3️⃣ Play Sound
+                const audio = new Audio(move.captured 
+                    ? "https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-changing-tab-206.wav"
+                    : "https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.wav");
+                audio.play();
+
+                setGame(new Chess(game.fen()));
+                setSelectedSquare(null);
+                setOptionSquares([]);
+
+                // 9️⃣ Simple Random AI (Black plays)
+                if(game.turn()==='b' && !game.game_over()){
+                    setTimeout(()=>{
+                        const moves = game.moves();
+                        const randomMove = moves[Math.floor(Math.random()*moves.length)];
+                        game.move(randomMove);
+                        setLastMove({from:randomMove.substring(0,2),to:randomMove.substring(2,4)});
+                        setHistory(game.history());
+                        setGame(new Chess(game.fen()));
+                    },400);
+                }
+
+                return;
+            }
+        }
+
+        const piece = game.get(square);
+        if(piece && piece.color===game.turn()){
+            setSelectedSquare(square);
+            const moves = game.moves({square,verbose:true});
+            setOptionSquares(moves.map(m=>m.to));
+        }else{
+            setSelectedSquare(null);
+            setOptionSquares([]);
+        }
+    }
+
+    // 7️⃣ Undo Move
+    function undoMove(){
+        game.undo();
+        game.undo(); // undo AI move too
+        setGame(new Chess(game.fen()));
+        setHistory(game.history());
+    }
+
+    function resetGame(){
+        const newGame = new Chess();
+        setGame(newGame);
+        setHistory([]);
+        setLastMove(null);
+        setWhiteTime(300);
+        setBlackTime(300);
+    }
+
+    function formatTime(seconds){
+        const m=Math.floor(seconds/60);
+        const s=seconds%60;
+        return `${m}:${s<10?'0':''}${s}`;
+    }
+
+    function status(){
+        if(game.in_checkmate()) return "Checkmate!";
+        if(game.in_draw()) return "Draw!";
+        return `${game.turn()==='w'?"White":"Black"} Turn`;
+    }
+
+    return(
+    <div className="flex flex-col items-center gap-6">
+
+        <h1 className="text-3xl font-bold text-yellow-400">Ultimate React Chess</h1>
+
+        {/* 6️⃣ Clock Display */}
+        <div className="flex gap-8 text-lg font-mono">
+            <div>White: {formatTime(whiteTime)}</div>
+            <div>Black: {formatTime(blackTime)}</div>
+        </div>
+
+        <p className={`text-lg ${game.in_check()?'text-red-500 animate-pulse':'text-gray-300'}`}>
+            {status()}
+        </p>
+
+        <div className="grid grid-cols-8 border-4 border-gray-700 shadow-2xl">
+        {board.map((row,i)=>
+            row.map((square,j)=>{
+
+                const squareLabel = getSquareLabel(i,j);
+                const isDark = (i+j)%2===1;
+                const isSelected = selectedSquare===squareLabel;
+                const isOption = optionSquares.includes(squareLabel);
+
+                // 1️⃣ Highlight Last Move
+                const isLastMove = lastMove &&
+                    (squareLabel===lastMove.from || squareLabel===lastMove.to);
+
+                return(
+                <div key={squareLabel}
+                    onClick={()=>handleSquareClick(squareLabel)}
+                    className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-4xl cursor-pointer relative
+                        ${isDark
+                            ? darkMode?'bg-slate-700':'bg-green-700'
+                            : darkMode?'bg-slate-400':'bg-green-200'}
+                        ${isSelected?'bg-yellow-300/60':''}
+                        ${isLastMove?'bg-green-400/60':''}
+                    `}
+                >
+                    {/* Legal Move Indicator */}
+                    {isOption && (
+                        <div className="absolute w-4 h-4 bg-black/30 rounded-full"></div>
+                    )}
+
+                    {/* 5️⃣ King Highlight in Check */}
+                    <span className={`z-10 select-none
+                        ${square?.color==='w'?'text-white':'text-black'}
+                        ${game.in_check() && square?.type==='k' && square?.color===game.turn()
+                            ?'animate-pulse text-red-600':''
+                        }
+                    `}>
+                        {square ? pieceSymbols[square.color==='w'?square.type.toUpperCase():square.type] : ''}
+                    </span>
+                </div>
+                );
+            })
+        )}
+        </div>
+
+        {/* Control Buttons */}
+        <div className="flex gap-4 flex-wrap justify-center">
+            <button onClick={resetGame} className="bg-red-600 px-4 py-2 rounded">
+                New Game
+            </button>
+
+            {/* 7️⃣ Undo */}
+            <button onClick={undoMove} className="bg-blue-600 px-4 py-2 rounded">
+                Undo
+            </button>
+
+            {/* 4️⃣ Flip Board */}
+            <button onClick={()=>setFlipped(!flipped)} className="bg-purple-600 px-4 py-2 rounded">
+                Flip Board
+            </button>
+
+            {/* 8️⃣ Theme Toggle */}
+            <button onClick={()=>setDarkMode(!darkMode)} className="bg-yellow-500 px-4 py-2 rounded text-black">
+                Toggle Theme
+            </button>
+        </div>
+
+        {/* 2️⃣ Move History Panel */}
+        <div className="bg-gray-800 p-4 rounded w-72 max-h-48 overflow-auto text-sm">
+            {history.map((move,i)=>(
+                <div key={i}>{i+1}. {move}</div>
+            ))}
+        </div>
+
+        {/* 🔟 Game Over Modal */}
+        {game.game_over() && (
+            <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
+                <div className="bg-white text-black p-6 rounded-lg text-center">
+                    <h2 className="text-xl font-bold mb-4">Game Over</h2>
+                    <button onClick={resetGame} className="bg-green-600 text-white px-4 py-2 rounded">
+                        Play Again
+                    </button>
+                </div>
+            </div>
+        )}
+
+    </div>
+    );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ChessApp/>);
+</script>
+</body>
+</html>
