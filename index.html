@@ -24,20 +24,20 @@ function ChessApp() {
     const [selectedSquare, setSelectedSquare] = useState(null);
     const [optionSquares, setOptionSquares] = useState([]);
 
-    // 1️⃣ Last Move Highlight
+    // Last Move Highlight
     const [lastMove, setLastMove] = useState(null);
 
-    // 2️⃣ Move History
+    // Move History
     const [history, setHistory] = useState([]);
 
-    // 4️⃣ Flip Board
+    // Flip Board
     const [flipped, setFlipped] = useState(false);
 
-    // 6️⃣ Chess Clock (5 minutes each)
+    // Chess Clock (5 minutes each)
     const [whiteTime, setWhiteTime] = useState(300);
     const [blackTime, setBlackTime] = useState(300);
 
-    // 8️⃣ Dark / Light Mode
+    // Dark / Light Mode
     const [darkMode, setDarkMode] = useState(true);
 
     const pieceSymbols = {
@@ -52,7 +52,7 @@ function ChessApp() {
         return String.fromCharCode(97 + j) + (8 - i);
     }
 
-    // 6️⃣ Timer Logic
+    // Timer Logic
     useEffect(()=>{
         const timer = setInterval(()=>{
             if(!game.game_over()){
@@ -74,13 +74,13 @@ function ChessApp() {
 
             if(move){
 
-                // 1️⃣ Save Last Move
+                // Save Last Move
                 setLastMove({from:move.from,to:move.to});
 
-                // 2️⃣ Update History
+                // Update History
                 setHistory(game.history());
 
-                // 3️⃣ Play Sound
+                // Play Sound
                 const audio = new Audio(move.captured 
                     ? "https://assets.mixkit.co/sfx/preview/mixkit-arcade-retro-changing-tab-206.wav"
                     : "https://assets.mixkit.co/sfx/preview/mixkit-game-click-1114.wav");
@@ -90,7 +90,7 @@ function ChessApp() {
                 setSelectedSquare(null);
                 setOptionSquares([]);
 
-                // 9️⃣ Simple Random AI (Black plays)
+                // Simple Random AI (Black plays)
                 if(game.turn()==='b' && !game.game_over()){
                     setTimeout(()=>{
                         const moves = game.moves();
@@ -117,7 +117,7 @@ function ChessApp() {
         }
     }
 
-    // 7️⃣ Undo Move
+    // Undo Move
     function undoMove(){
         game.undo();
         game.undo(); // undo AI move too
@@ -151,7 +151,7 @@ function ChessApp() {
 
         <h1 className="text-3xl font-bold text-yellow-400">Ultimate React Chess</h1>
 
-        {/* 6️⃣ Clock Display */}
+        {/* Clock Display */}
         <div className="flex gap-8 text-lg font-mono">
             <div>White: {formatTime(whiteTime)}</div>
             <div>Black: {formatTime(blackTime)}</div>
@@ -170,7 +170,7 @@ function ChessApp() {
                 const isSelected = selectedSquare===squareLabel;
                 const isOption = optionSquares.includes(squareLabel);
 
-                // 1️⃣ Highlight Last Move
+                // Highlight Last Move
                 const isLastMove = lastMove &&
                     (squareLabel===lastMove.from || squareLabel===lastMove.to);
 
@@ -190,7 +190,7 @@ function ChessApp() {
                         <div className="absolute w-4 h-4 bg-black/30 rounded-full"></div>
                     )}
 
-                    {/* 5️⃣ King Highlight in Check */}
+                    {/* King Highlight in Check */}
                     <span className={`z-10 select-none
                         ${square?.color==='w'?'text-white':'text-black'}
                         ${game.in_check() && square?.type==='k' && square?.color===game.turn()
@@ -211,30 +211,30 @@ function ChessApp() {
                 New Game
             </button>
 
-            {/* 7️⃣ Undo */}
+            {/* Undo */}
             <button onClick={undoMove} className="bg-blue-600 px-4 py-2 rounded">
                 Undo
             </button>
 
-            {/* 4️⃣ Flip Board */}
+            {/* Flip Board */}
             <button onClick={()=>setFlipped(!flipped)} className="bg-purple-600 px-4 py-2 rounded">
                 Flip Board
             </button>
 
-            {/* 8️⃣ Theme Toggle */}
+            {/* Theme Toggle */}
             <button onClick={()=>setDarkMode(!darkMode)} className="bg-yellow-500 px-4 py-2 rounded text-black">
                 Toggle Theme
             </button>
         </div>
 
-        {/* 2️⃣ Move History Panel */}
+        {/* Move History Panel */}
         <div className="bg-gray-800 p-4 rounded w-72 max-h-48 overflow-auto text-sm">
             {history.map((move,i)=>(
                 <div key={i}>{i+1}. {move}</div>
             ))}
         </div>
 
-        {/* 🔟 Game Over Modal */}
+        {/* Game Over Modal */}
         {game.game_over() && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center">
                 <div className="bg-white text-black p-6 rounded-lg text-center">
